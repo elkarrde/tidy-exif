@@ -1,4 +1,4 @@
-# tidy-exif
+# Tidy-EXIF
 
 **tidy-exif** is a small Go CLI tool that removes Adobe software signatures from image EXIF/XMP metadata.
 
@@ -34,7 +34,7 @@ Both `/option` and `--option` flag styles are accepted on all platforms.
 ### Options
 
 | Flag | Default | Description |
-|---|---|---|
+|------|:-------:|-------------|
 | `/dir` `--dir` | `./` | Directory to process |
 | `/ext` `--ext` | `jpg,jpeg` | Comma-separated list of file extensions to process |
 | `/dry-run` `--dry-run` | off | Show what would change without writing anything |
@@ -85,7 +85,7 @@ If no config file is provided, all targeted fields are emptied.
 ## Fields cleaned
 
 | XMP Field | Description |
-|---|---|
+|-----------|-------------|
 | `xmp:CreatorTool` | Last application to write the file |
 | `xmpMM:History[]/stEvt:softwareAgent` | Per-save software agent log |
 | `xmp:MetadataDate` | Date metadata was last modified |
@@ -115,3 +115,7 @@ tidy-exif shares its file-walking and EXIF-reading approach with the [exif2xlsx]
 ## License
 
 MIT
+
+-----
+
+Main repo: [Codeberg](https://codeberg.org/elkarrde/tidy-exif)
