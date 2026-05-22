@@ -1,13 +1,17 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 )
 
-const version = "0.1.0"
+const (
+	version   = "0.1.0"
+	build     = "1"
+	buildDate = "2026-05-22"
+)
 
 func main() {
 	args := normaliseArgs(os.Args[1:])
@@ -15,7 +19,8 @@ func main() {
 
 	if len(os.Args) < 2 {
 		printHelp()
-		os.Exit(1)
+		waitIfWindows()
+		os.Exit(0)
 	}
 
 	cmd := os.Args[1]
@@ -25,14 +30,20 @@ func main() {
 	case "clean":
 		runClean(os.Args[2:])
 	case "--version", "-version":
-		fmt.Println(version)
+		printVersion()
+		waitIfWindows()
+		os.Exit(0)
 	case "--help", "-help", "-h":
 		printHelp()
+		waitIfWindows()
+		os.Exit(0)
 	default:
-		fmt.Fprintf(os.Stderr, "tidy-exif: unknown command %q\n", cmd)
+		fmt.Fprintf(os.Stderr, "tidy-exif: unknown command %q\n\n", cmd)
 		printHelp()
-		os.Exit(1)
+		die(1)
 	}
+
+	waitIfWindows()
 }
 
 // normaliseArgs converts /flag and /flag=value tokens to --flag style.
@@ -49,42 +60,38 @@ func normaliseArgs(args []string) []string {
 	return out
 }
 
-func runCheck(args []string) {
-	fs := flag.NewFlagSet("check", flag.ExitOnError)
-	dir := fs.String("dir", ".", "directory to scan")
-	ext := fs.String("ext", "jpg,jpeg", "comma-separated file extensions")
-	fs.Parse(args)
-	_, _ = dir, ext
-	fmt.Fprintln(os.Stderr, "check: not yet implemented")
-	os.Exit(1)
+// die prints the Windows pause if applicable and exits with code.
+func die(code int) {
+	waitIfWindows()
+	os.Exit(code)
 }
 
-func runClean(args []string) {
-	fs := flag.NewFlagSet("clean", flag.ExitOnError)
-	dir := fs.String("dir", ".", "directory to process")
-	ext := fs.String("ext", "jpg,jpeg", "comma-separated file extensions")
-	dryRun := fs.Bool("dry-run", false, "show what would change without writing")
-	backup := fs.Bool("backup", false, "write .bak copy before modifying")
-	cfg := fs.String("config", "", "path to TOML config file")
-	fs.Parse(args)
-	_, _, _, _, _ = dir, ext, dryRun, backup, cfg
-	fmt.Fprintln(os.Stderr, "clean: not yet implemented")
-	os.Exit(1)
+// waitIfWindows pauses for Enter on Windows so the console window stays open
+// when the tool is launched by double-clicking the .exe.
+func waitIfWindows() {
+	if runtime.GOOS == "windows" {
+		fmt.Println("\nPress <Enter> to close.")
+		fmt.Scanln()
+	}
+}
+
+func printVersion() {
+	fmt.Printf("tidy-exif %s (build %s, %s)\n", version, build, buildDate)
 }
 
 func printHelp() {
 	fmt.Printf(`tidy-exif %s - remove Adobe software signatures from image metadata
 
 Usage:
-  tidy-exif check [options]   scan files and report Adobe metadata fields
+  tidy-exif check [options]   scan files, report Adobe metadata fields
   tidy-exif clean [options]   remove or replace Adobe metadata fields
 
 Options (both /flag and --flag accepted on all platforms):
   /dir PATH       directory to process (default: ./)
-  /ext LIST       comma-separated extensions (default: jpg,jpeg)
-  /dry-run        show changes without writing (clean only)
-  /backup         write .bak copy before modifying (clean only)
-  /config PATH    TOML config file for replacement values (clean only)
+  /ext LIST       file extensions, comma-separated (default: jpg,jpeg)
+  /dry-run        [clean] show what would change without writing
+  /backup         [clean] write .bak backup before modifying each file
+  /config PATH    [clean] TOML file mapping field names to replacement values
   /version        print version and exit
 `, version)
 }
