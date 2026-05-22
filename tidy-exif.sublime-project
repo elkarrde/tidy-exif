@@ -1,17 +1,14 @@
 {
   "folders": [
     {
-      "name": "TidyEXIF",
+      "name": "tidy-exif",
       "path": "./",
       "folder_exclude_patterns": [
-        "node_modules", ".github", ".git", ".vscode", ".idea",
-        "__pycache__", "pydevd_attach_to_process", "venv", ".phpintel"
+        ".git", ".github", ".claude"
       ],
       "file_exclude_patterns": [
-        "npm-debug.log", ".keep", ".gitkeep", "all.min.css", "package-lock.json",
-        "*.min.js", "*.bak", "*.svg", "*.woff*", "*.sublime-workspace",
-      ],
-      "binary_file_patterns": []
+        "*.bak", "*.sublime-workspace", "tidy-exif", "tidy-exif.exe"
+      ]
     }
   ],
   "settings": {
@@ -21,8 +18,28 @@
     "rulers": [80, 100],
     "highlight_line": true,
     "word_wrap": false,
-    "hightlight_modified_tabs": true,
+    "highlight_modified_tabs": true,
     "find_selected_text": true,
     "default_line_ending": "unix"
-  }
+  },
+  "build_systems": [
+    {
+      "name": "tidy-exif: build",
+      "shell_cmd": "go build -o tidy-exif .",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    },
+    {
+      "name": "tidy-exif: build (windows)",
+      "shell_cmd": "GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe .",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    },
+    {
+      "name": "tidy-exif: test",
+      "shell_cmd": "go test ./...",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    }
+  ]
 }
