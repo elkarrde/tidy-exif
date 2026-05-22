@@ -1,3 +1,3 @@
 module codeberg.org/elkarrde/tidy-exif
 
-go 1.16
+go 1.21
