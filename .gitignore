@@ -3,11 +3,15 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+tidy-exif
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Backup files written by tidy-exif clean --backup
+*.bak
 
 # Test binary, built with `go test -c`
 *.test
