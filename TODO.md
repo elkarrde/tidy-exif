@@ -1,108 +1,128 @@
 # tidy-exif — TODO
 
-This file is the implementation guide for Claude Code (or any future session).
-Work through phases in order; each phase should leave the project in a buildable state.
+This file started as the implementation guide for the v0.1.0 build. Phases 1–8 are
+implemented and the test suite passes; only the release tasks in Phase 9 remain.
+Checkboxes below reflect actual code state as of 2026-06-19, with notes where the
+implementation diverged from the original plan.
 
 ---
 
 ## Context
 
-- Language: Go 1.21+
+- Language: Go (`go.mod` declares **`go 1.16`** — note: not 1.21 as originally planned)
 - Primary platform: Windows (`.exe`), cross-compiled from Linux/macOS if needed
-- Related project in same repo: `../exif2xlsx/` — reuse patterns from there
-- Key constraint: `github.com/rwcarlsen/goexif` is **read-only**; XMP writes must be done via raw byte manipulation of the JPEG APP1 segment
+- Related project in same repo: `../exif2xlsx/` — file-walking pattern reused from there
+- Key constraint: XMP writes are done via raw byte manipulation of the JPEG APP1 segment
+- **Divergence:** the planned `goexif` dependency was dropped — the read/check path is
+  also hand-rolled (see `jpeg.go` / `xmp.go`), so the only third-party dep is
+  `github.com/BurntSushi/toml`
 - Flag style: support both `/flag` (Windows) and `--flag` (Unix) transparently
 
 ---
 
 ## Phase 1 — Scaffold
 
-- [ ] Create `go.mod` with module name `codeberg.org/elkarrde/tidy-exif`, `go 1.21`
-- [ ] Add dependency: `github.com/rwcarlsen/goexif` (same version as exif2xlsx)
-- [ ] Add dependency: `github.com/BurntSushi/toml` for config file parsing
-- [ ] Create `Makefile` with targets: `build`, `build-windows`, `clean`
-- [ ] Create `main.go` with version/build constants (follow exif2xlsx pattern) and subcommand dispatch
+- [x] Create `go.mod` with module name `codeberg.org/elkarrde/tidy-exif` *(declares `go 1.16`)*
+- [ ] ~~Add dependency: `github.com/rwcarlsen/goexif`~~ — dropped; not used, parser is hand-rolled
+- [x] Add dependency: `github.com/BurntSushi/toml` for config file parsing
+- [x] Create `Makefile` with targets: `build`, `build-windows`, `clean`
+- [x] Create `main.go` with version/build constants and subcommand dispatch
 
 ---
 
 ## Phase 2 — Flag normalisation
 
-- [ ] Write a `normaliseArgs()` function (or equivalent) that rewrites `os.Args` before `flag.Parse()`, converting any `/flag` or `/flag=value` token to `--flag` / `--flag=value`
-- [ ] This must handle boolean flags (`/dry-run`), value flags (`/dir=PATH`), and space-separated values (`/dir PATH`)
-- [ ] Write a unit test: given a mixed slice of `/` and `--` args, assert the normalised output
+- [x] `normaliseArgs()` rewrites `/flag` / `/flag=value` tokens to `--` form before `flag.Parse()`
+- [x] Handles boolean, `=value`, and space-separated value flags
+- [x] Unit test asserting normalised output (`main_test.go`)
 
 ---
 
 ## Phase 3 — File walking (`files.go`)
 
-- [ ] Port `IOReadDir` from `../exif2xlsx/exif2xls.go` into `files.go`
-- [ ] Extend to accept `root string` and `extensions []string` parameters instead of hardcoded values
-- [ ] Extensions should be matched case-insensitively (`.JPG` == `.jpg`)
-- [ ] Write a basic test against a temp directory with dummy files
+- [x] Directory walker reused from `../exif2xlsx/`, parameterised by `root` and `extensions`
+- [x] Case-insensitive extension matching (`.JPG` == `.jpg`)
+- [x] Test against a temp directory with dummy files (`files_test.go`)
 
 ---
 
-## Phase 4 — XMP segment handling (`xmp.go`)
+## Phase 4 — XMP segment handling (`xmp.go` / `jpeg.go`)
 
-This is the core of the tool. The XMP block in a JPEG is an APP1 segment identified by the marker `0xFF 0xE1` followed by the namespace URI `http://ns.adobe.com/xap/1.0/\x00`.
+The core of the tool. Implemented, though the function decomposition differs from the
+original sketch: JPEG segments are parsed/rewritten via `parseJPEG` / `writeJPEG`
+(`jpeg.go`), and the XMP orchestration lives in `ParseXMPFromJPEG` / `CleanXMPInJPEG`
+(`xmp.go`), rather than the originally-named `findXMPSegment` / `replaceXMPSegment`.
 
-- [ ] Write `findXMPSegment(data []byte) (start, end int, found bool)` — locates the XMP APP1 segment in raw JPEG bytes
-- [ ] Write `parseXMP(segment []byte) (*XMPData, error)` — unmarshals the XMP XML using `encoding/xml` from stdlib; populate a struct covering all six target fields (see README)
-- [ ] Write `cleanXMP(xmp *XMPData, replacements map[string]string) *XMPData` — applies replacement values (empty string by default) to all target fields; `xmpMM:History` entries should have their `stEvt:softwareAgent` attribute/element zeroed, but the history entries themselves should not be deleted (preserve structure)
-- [ ] Write `marshalXMP(xmp *XMPData) ([]byte, error)` — serialises back to XML; the result must be the same byte length or the segment must be padded/rebuilt at the correct JPEG offset
-- [ ] Write `replaceXMPSegment(data []byte, newSegment []byte) ([]byte, error)` — splices the new segment back into the JPEG byte stream
-- [ ] All functions should be independently testable; provide test fixtures (a minimal JPEG with known XMP content)
+- [x] Locate the XMP APP1 segment in raw JPEG bytes (`parseJPEG` + `isXMPSeg`)
+- [x] `parseXMP` unmarshals the XMP XML (stdlib `encoding/xml`) into `XMPData`
+- [x] `cleanXMP` applies replacement values; `xmpMM:History` entries have their
+      `stEvt:softwareAgent` zeroed without deleting the history entries
+- [x] `marshalXMP` serialises back to XML, length-preserved via `adjustPadding`
+- [x] Splice the new segment back into the JPEG byte stream (`writeJPEG`)
+- [x] Independently testable with JPEG/XMP fixtures (`xmp_test.go`)
 
-**Note on length:** If the cleaned XMP XML is shorter than the original, pad with whitespace inside the XML to preserve segment length, avoiding the need to rewrite all subsequent JPEG segment offsets.
+**Length:** shorter cleaned XML is whitespace-padded (`adjustPadding`) to preserve
+segment length and avoid rewriting downstream JPEG offsets.
 
 ---
 
 ## Phase 5 — Config file (`config.go`)
 
-- [ ] Define `Config` struct with a `[replacements]` table mapping field names to replacement strings
-- [ ] Write `loadConfig(path string) (Config, error)` using `github.com/BurntSushi/toml`
-- [ ] If no config path is provided, return a default `Config` with all replacement values set to `""`
-- [ ] Validate that config keys are recognised field names; warn (do not error) on unknown keys
+- [x] `Config` struct with a `[replacements]` table mapping field names to strings
+- [x] `loadConfig(path)` using `github.com/BurntSushi/toml`
+- [x] No config path → default `Config` with all replacements `""`
+- [x] Recognised-key handling (`config_test.go`)
 
 ---
 
 ## Phase 6 — `check` command
 
-- [ ] Walk the target directory with the file walker
-- [ ] For each file: open, find XMP segment, parse, report presence/value of each target field
-- [ ] Output: tabular, one file per line, columns: filename, fields present (Y/N or value preview), similar style to `exif2xlsx check`
-- [ ] Honour `/ext` filter
-- [ ] Summary line at the end: N files scanned, M with Adobe metadata
+- [x] Walks the target directory with the file walker
+- [x] Per file: open, find XMP, parse, report presence/value of each target field
+- [x] Tabular output, one file per line
+- [x] Honours `/ext` filter
+- [x] Summary line (files scanned, files with Adobe metadata)
 
 ---
 
 ## Phase 7 — `clean` command
 
-- [ ] Walk the target directory
-- [ ] For each file:
-  - [ ] If `/dry-run`: parse XMP, compute what would change, print diff-style summary, skip write
-  - [ ] If `/backup`: copy `file.jpg` → `file.jpg.bak` before any modification
-  - [ ] Read file bytes, find XMP segment, parse, clean, rewrite segment, write back to original path
-  - [ ] Print per-file status: `cleaned`, `skipped (no Adobe metadata)`, `error`
-- [ ] Summary line at the end: N cleaned, M skipped, P errors
+- [x] Walks the target directory
+- [x] `/dry-run`: computes and prints what would change, skips write (`printDryRun`)
+- [x] `/backup`: copies `file.jpg` → `file.jpg.bak` before modifying (`copyFile`)
+- [x] Read → find → parse → clean → rewrite segment → write back in place
+- [x] Per-file status and end-of-run summary
 
 ---
 
 ## Phase 8 — Polish
 
-- [ ] `printHelp()` — follows exif2xlsx style, lists both `/` and `--` flag forms
-- [ ] `--version` flag prints version, build number, date
-- [ ] On Windows (`runtime.GOOS == "windows"`), print "Press <Enter> to close." and wait for input before exit (matches exif2xlsx behaviour)
-- [ ] Ensure the tool exits cleanly (exit code 0 on success, 1 on error) — useful for scripting
+- [x] `printHelp()` lists both `/` and `--` flag forms
+- [x] `--version` / `/version` prints version, build, date
+- [x] On Windows, prints "Press <Enter> to close." before exit
+- [x] Clean exit codes (0 success / 1 error)
 
 ---
 
-## Phase 9 — Build & release
+## Phase 9 — Build & release  *(remaining)*
 
-- [ ] Confirm `go build` produces a working binary
-- [ ] Confirm `GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe .` works from Linux
-- [ ] Test against real Lightroom-exported JPEGs
-- [ ] Tag `v0.1.0` on Codeberg
+- [x] `go build` produces a working binary
+- [x] `GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe .` works from Linux *(verified 2026-06-19)*
+- [x] Test against real Lightroom-exported JPEGs *(2026-06-19; found + fixed the attribute-form history bug)*
+- [ ] Tag `v0.1.0` on Codeberg, build + attach Linux/Windows binaries
+
+---
+
+## Phase 10 — Exif Software tag *(done 2026-06-19)*
+
+Added during real-file smoke testing: Adobe also writes the Exif IFD0 Software
+tag (0x0131), which the XMP-only cleaner left behind.
+
+- [x] `exif.go` — parse TIFF/IFD0, read + length-preserving in-place clean of Software (0x0131)
+- [x] Adobe-only gate (`isAdobeSoftware`) so camera/scanner Software (VueScan, firmware) is preserved
+- [x] `inspect.go` — `InspectJPEG` / `CleanJPEG` unify XMP + Exif in one parse/write
+- [x] `check`/`clean`/dry-run report and clean the Exif Software tag
+- [x] `Software` config key; regression tests for attribute-form history + Exif
 
 ---
 
@@ -114,3 +134,4 @@ This is the core of the tool. The XMP block in a JPEG is an APP1 segment identif
 - Config: TOML, optional; no config = empty everything
 - Flag style: both `/` and `--` accepted
 - In-place modification: yes, with optional backup
+- **EXIF library: none** — `goexif` was dropped in favour of a hand-rolled parser

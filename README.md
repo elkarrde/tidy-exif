@@ -14,6 +14,8 @@ JPEG files can contain an XMP metadata block alongside standard EXIF data. Adobe
 - `xmpMM:DocumentID` and `xmpMM:InstanceID` — GUIDs linking file versions within Adobe's ecosystem
 - `xmpMM:OriginalDocumentID` — traces the file back to its original Adobe-managed source
 
+Adobe also writes the **EXIF `Software` tag** (IFD0 tag 0x0131, e.g. `Adobe Photoshop CS6 (Windows)`). tidy-exif cleans this too, but **only when its value is an Adobe signature** — non-Adobe Software tags (camera firmware, scanner software such as VueScan, etc.) are legitimate metadata and are left untouched.
+
 None of these affect image quality or capture data. tidy-exif replaces their values with empty strings, or with a value you configure.
 
 ## Usage
@@ -78,6 +80,8 @@ InstanceID        = ""
 OriginalDocumentID = ""
 # HistorySoftwareAgent entries will be emptied unless specified here
 SoftwareAgent     = ""
+# EXIF IFD0 Software tag (0x0131); only cleaned when it is an Adobe signature
+Software          = ""
 ```
 
 If no config file is provided, all targeted fields are emptied.
@@ -92,10 +96,11 @@ If no config file is provided, all targeted fields are emptied.
 | `xmpMM:DocumentID` | Adobe document GUID |
 | `xmpMM:InstanceID` | Adobe instance GUID |
 | `xmpMM:OriginalDocumentID` | Original document GUID |
+| EXIF `Software` (IFD0 0x0131) | Writing application — cleaned only when it is an Adobe signature |
 
 ## Building
 
-Requires Go 1.21+.
+Requires Go 1.16+.
 
 ```
 go build -o tidy-exif.exe .
@@ -110,7 +115,7 @@ A `Makefile` with a `build-windows` target is provided.
 
 ## Relation to exif2xlsx
 
-tidy-exif shares its file-walking and EXIF-reading approach with the [exif2xlsx](../exif2xlsx/) project in this repository. The `goexif` library (`github.com/rwcarlsen/goexif`) is used for the read/check path; XMP segment manipulation is handled directly on the raw JPEG bytes, since `goexif` is read-only.
+tidy-exif shares its file-walking approach with the [exif2xlsx](../exif2xlsx/) project in this repository. Unlike exif2xlsx, it does **not** depend on the `goexif` library: both the `check` (read) and `clean` (write) paths operate directly on the raw JPEG segment bytes via a hand-rolled parser — the XMP APP1 segment (`xmp.go`) and the Exif APP1 Software tag (`exif.go`), unified in `inspect.go`. The tool's only third-party dependency is `github.com/BurntSushi/toml` for config parsing.
 
 ## License
 
