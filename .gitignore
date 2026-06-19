@@ -33,3 +33,6 @@ go.work
 
 # Test data
 testdata/*
+
+# Design
+design/*
