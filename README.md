@@ -119,7 +119,7 @@ tidy-exif shares its file-walking approach with the [exif2xlsx](../exif2xlsx/) p
 
 ## License
 
-MIT
+Mozilla Public License 2.0 (MPL-2.0) — see [`LICENSE`](LICENSE).
 
 -----
 

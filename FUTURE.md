@@ -87,7 +87,8 @@ certificate** — an annual cost to budget for.
 
 ### Synergy with exifscalpel
 
-This pairs naturally with the planned `exifscalpel` library extraction (see
-`exifscalpel-HANDOFF.md`): once the core logic is a library, a CLI exe and a thin
+This pairs naturally with the `exifscalpel` library extraction (now its own repo
+at `../exifscalpel/`; see its `exifscalpel-HANDOFF.md`): once the core logic is a
+library, a CLI exe and a thin
 Windows GUI/shell wrapper become equally cheap front-ends over the same engine —
 making Tier 2 (and even Tier 3's exe-behind-a-shell-ext) materially easier.
