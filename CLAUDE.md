@@ -44,9 +44,9 @@ Adobe signature — non-Adobe Software (camera firmware, VueScan, …) is preser
 Extensions `jpg,jpeg` only. Default action empties all target fields; `/backup`
 opts into a `.bak` copy; `/dry-run` reports without writing.
 
-`TODO.md` reflects actual code state: phases 1–8 are implemented and checked off;
-only the Phase 9 release tasks remain (real-JPEG smoke test, tag `v0.1.0`, attach
-binaries). Keep its checkboxes in sync when those land.
+`TODO.md` reflects actual code state: phases 1–8 plus the Exif Software work are
+implemented and checked off, and the real-JPEG smoke test is done. Only the
+release task remains (tag `v0.1.3`, attach binaries). Keep its checkboxes in sync.
 
 ## Housekeeping
 

@@ -4,12 +4,12 @@
 
 | Field | Value |
 |:--|:--|
-| Phase | feature-complete (phases 1–8 done) |
-| Version | untagged (v0.1.0 in code) |
+| Phase | feature-complete (phases 1–8 + Exif done) |
+| Version | untagged (v0.1.3 in code) |
 | Build | passing |
 | Tests | passing |
 | Deployed | not released |
-| Blocker | tag `v0.1.0`, build + attach Linux/Windows binaries |
+| Blocker | tag `v0.1.3`, build + attach Linux/Windows binaries |
 
 ## Notes
 
