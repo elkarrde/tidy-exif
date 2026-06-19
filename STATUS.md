@@ -4,7 +4,7 @@
 
 | Field | Value |
 |:--|:--|
-| Phase | feature-complete |
+| Phase | feature-complete (phases 1–8 done) |
 | Version | untagged (v0.1.0 in code) |
 | Build | passing |
 | Tests | passing |
@@ -13,7 +13,5 @@
 
 ## Notes
 
-The `check` and `clean` commands are implemented; `go build` and `go test` pass.
-⚠️ `TODO.md` is stale — every phase is shown unchecked, but the v0.1.0 commit
-already landed the file walker, config, and both commands. Refresh `TODO.md`
-when tagging. Closest project to a finished release.
+All commands (`check`, `clean`) are implemented and passing tests. `TODO.md` now reflects
+reality — phases 1–8 are fully checked; only phase 9 (release) remains.

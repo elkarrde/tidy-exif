@@ -36,10 +36,6 @@ rewrite of downstream JPEG offsets.
 Extensions `jpg,jpeg` only. Default action empties all target fields; `/backup`
 opts into a `.bak` copy; `/dry-run` reports without writing.
 
-⚠️ `TODO.md` is written as a phased build guide and is currently all-unchecked,
-but the `check`/`clean` commands are already implemented (v0.1.0 in code).
-Refresh `TODO.md` to reflect reality when tagging.
-
 ## Housekeeping
 
 Update `STATUS.md` (and reconcile `TODO.md`) as part of any change that alters
