@@ -100,18 +100,20 @@ If no config file is provided, all targeted fields are emptied.
 
 ## Building
 
-Requires Go 1.16+.
+Requires Go 1.16+. The CLI lives in `./cmd/tidy-exif` (the engine is in
+`internal/meta`).
 
 ```
-go build -o tidy-exif.exe .
+go build -o tidy-exif ./cmd/tidy-exif
 ```
 
 Cross-compile for Windows from Linux/macOS:
 ```
-GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe .
+GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe ./cmd/tidy-exif
 ```
 
-A `Makefile` with a `build-windows` target is provided.
+A `Makefile` with `build` / `build-windows` targets is provided. To install:
+`go install codeberg.org/elkarrde/tidy-exif/cmd/tidy-exif@latest`.
 
 ## Relation to exif2xlsx
 

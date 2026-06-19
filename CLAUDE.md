@@ -16,23 +16,31 @@ Usage: `tidy-exif check` and `tidy-exif clean`. Both `/flag` (Windows) and
 
 ## Architecture
 
-Single-package Go CLI that empties Adobe software-identifier fields from a JPEG's
-XMP (APP1) segment and its Exif `Software` tag (IFD0 0x0131) via raw byte
-manipulation. There is **no** `goexif` (or other EXIF-library) dependency: both
-the read (`check`) and write (`clean`) paths use a hand-rolled JPEG segment
-parser, since the cleaning step needs to rewrite bytes that read-only EXIF
-libraries cannot. The only third-party dependency is `github.com/BurntSushi/toml`
-for config parsing.
+Go CLI that empties Adobe software-identifier fields from a JPEG's XMP (APP1)
+segment and its Exif `Software` tag (IFD0 0x0131) via raw byte manipulation. There
+is **no** `goexif` (or other EXIF-library) dependency: both the read (`check`) and
+write (`clean`) paths use a hand-rolled JPEG segment parser, since the cleaning step
+needs to rewrite bytes that read-only EXIF libraries cannot. The only third-party
+dependency is `github.com/BurntSushi/toml` for config parsing.
 
-- `main.go` — version constants, arg/flag normalisation, subcommand dispatch
-- `files.go` — directory walking, case-insensitive extension matching
-- `xmp.go` — find/parse/clean/marshal/replace the XMP APP1 segment
-- `exif.go` — Exif IFD0 Software tag (0x0131) read/clean; Adobe-only gate
-- `inspect.go` — `InspectJPEG` / `CleanJPEG` unify XMP + Exif in one parse/write
-- `jpeg.go` — JPEG segment helpers
-- `check.go` / `clean.go` — the two commands
-- `config.go` — optional TOML config of replacement values (default: empty all)
-- `*_test.go` — unit tests with JPEG/XMP/Exif fixtures
+Layout is lapis-style (`cmd/` binary + `internal/` engine):
+
+- `cmd/tidy-exif/` — the CLI (`package main`)
+  - `main.go` — version constants, arg/flag normalisation, subcommand dispatch
+  - `check.go` / `clean.go` — the two commands
+  - `config.go` — optional TOML config of replacement values (default: empty all)
+  - `files.go` — directory walking, case-insensitive extension matching
+- `internal/meta/` — the metadata engine (`package meta`); this is the code slated
+  to extract into the `exifscalpel` library
+  - `jpeg.go` — JPEG segment parser/writer
+  - `xmp.go` — find/parse/clean/marshal the XMP APP1 segment
+  - `exif.go` — Exif IFD0 Software tag (0x0131) read/clean; Adobe-only gate
+  - `inspect.go` — `InspectJPEG` / `CleanJPEG` unify XMP + Exif in one parse/write
+- `*_test.go` — unit tests alongside the code they exercise (CLI tests in
+  `cmd/tidy-exif`, engine/white-box tests in `internal/meta`)
+
+The CLI consumes the engine through `meta.InspectJPEG` / `meta.CleanJPEG`; the
+already-exported `FileReport` / `XMPData` carry the results.
 
 Both edits are length-preserving so downstream JPEG offsets never move: cleaned
 XMP is whitespace-padded, and the Exif Software value is overwritten in place

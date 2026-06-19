@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package main
+package meta
 
 import (
 	"bytes"
@@ -11,46 +11,8 @@ import (
 	"testing"
 )
 
-func TestCopyFile(t *testing.T) {
-	tmp := t.TempDir()
-	src := filepath.Join(tmp, "src.jpg")
-	dst := filepath.Join(tmp, "dst.jpg")
-
-	content := []byte("test content for copy")
-	if err := os.WriteFile(src, content, 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := copyFile(src, dst); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := os.ReadFile(dst)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(got, content) {
-		t.Errorf("copied content does not match source")
-	}
-
-	// permissions should be preserved
-	srcInfo, _ := os.Stat(src)
-	dstInfo, _ := os.Stat(dst)
-	if srcInfo.Mode() != dstInfo.Mode() {
-		t.Errorf("mode mismatch: src %v, dst %v", srcInfo.Mode(), dstInfo.Mode())
-	}
-}
-
-func TestCopyFileMissingSource(t *testing.T) {
-	tmp := t.TempDir()
-	err := copyFile(filepath.Join(tmp, "missing.jpg"), filepath.Join(tmp, "out.jpg"))
-	if err == nil {
-		t.Error("expected error copying missing source")
-	}
-}
-
-// TestCleanPipeline exercises the full file-level clean pipeline:
-// walk → read → CleanXMPInJPEG → write → verify.
+// TestCleanPipeline exercises the engine clean pipeline across multiple files:
+// read → ParseXMPFromJPEG → (skip or CleanXMPInJPEG) → write → verify.
 func TestCleanPipeline(t *testing.T) {
 	tmp := t.TempDir()
 
@@ -65,7 +27,7 @@ func TestCleanPipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	files, err := walkFiles(tmp, []string{"jpg"})
+	files, err := filepath.Glob(filepath.Join(tmp, "*.jpg"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +83,7 @@ func TestCleanPipeline(t *testing.T) {
 	}
 }
 
-// TestCleanPipelineWithBackup verifies that .bak files are created before modification.
+// TestCleanPipelineWithBackup verifies a pre-clean copy preserves the original bytes.
 func TestCleanPipelineWithBackup(t *testing.T) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "photo.jpg")
@@ -132,8 +94,8 @@ func TestCleanPipelineWithBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Backup then clean
-	if err := copyFile(path, bak); err != nil {
+	// Back up (plain copy), then clean.
+	if err := os.WriteFile(bak, original, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -144,7 +106,7 @@ func TestCleanPipelineWithBackup(t *testing.T) {
 	}
 	os.WriteFile(path, result, 0644)
 
-	// .bak should contain original, unmodified content
+	// .bak should contain original, unmodified content.
 	bakData, err := os.ReadFile(bak)
 	if err != nil {
 		t.Fatal(err)
@@ -153,7 +115,7 @@ func TestCleanPipelineWithBackup(t *testing.T) {
 		t.Error(".bak file content does not match original")
 	}
 
-	// Cleaned file should differ from original
+	// Cleaned file should differ from original.
 	cleaned, _ := os.ReadFile(path)
 	if bytes.Equal(cleaned, original) {
 		t.Error("cleaned file is identical to original — expected changes")

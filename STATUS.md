@@ -1,6 +1,6 @@
 # Status
 
-*Last updated: 2026-06-19*
+*Last updated: 2026-06-20*
 
 | Field | Value |
 |:--|:--|
@@ -27,3 +27,8 @@ length-preserving, output decodes as valid JPEG, all Adobe signatures removed.
 Note: the planned `goexif` dependency was dropped — the tool is hand-rolled over
 raw JPEG bytes with only `BurntSushi/toml` as a third-party dep. Only release
 tasks (tag + binaries) remain.
+
+Repo reorganized (2026-06-20) to a lapis-style layout: CLI in `cmd/tidy-exif/`
+(`package main`), metadata engine in `internal/meta/` (`package meta`) — the latter
+is what will extract into the `exifscalpel` library. Build/vet/tests green after the
+move; behavior unchanged.

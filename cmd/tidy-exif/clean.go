@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"codeberg.org/elkarrde/tidy-exif/internal/meta"
 )
 
 func runClean(args []string) {
@@ -51,7 +53,7 @@ func runClean(args []string) {
 			continue
 		}
 
-		report, err := InspectJPEG(data)
+		report, err := meta.InspectJPEG(data)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %-30s error: %v\n", name, err)
 			errors++
@@ -85,7 +87,7 @@ func runClean(args []string) {
 			continue
 		}
 
-		_, result, err := CleanJPEG(data, cfg.Replacements)
+		_, result, err := meta.CleanJPEG(data, cfg.Replacements)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %-30s error: %v\n", name, err)
 			errors++
@@ -115,7 +117,7 @@ func runClean(args []string) {
 }
 
 // printDryRun shows what fields would be changed in a file without writing.
-func printDryRun(name string, report *FileReport, replacements map[string]string) {
+func printDryRun(name string, report *meta.FileReport, replacements map[string]string) {
 	repl := func(key string) string {
 		if v, ok := replacements[key]; ok {
 			return v

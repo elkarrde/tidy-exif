@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"codeberg.org/elkarrde/tidy-exif/internal/meta"
 )
 
 func runCheck(args []string) {
@@ -46,7 +48,7 @@ func runCheck(args []string) {
 			continue
 		}
 
-		report, err := InspectJPEG(data)
+		report, err := meta.InspectJPEG(data)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %3d  %-24s  error: %v\n", i+1, truncate(name, 24), err)
 			continue

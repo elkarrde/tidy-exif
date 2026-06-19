@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package main
+package meta
 
 // EXIF (TIFF) handling for the IFD0 Software tag (0x0131), which Adobe tools
 // write alongside the XMP signature (e.g. "Adobe Photoshop CS6 (Windows)").
