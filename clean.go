@@ -47,21 +47,21 @@ func runClean(args []string) {
 			continue
 		}
 
-		xmp, err := ParseXMPFromJPEG(data)
+		report, err := InspectJPEG(data)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %-30s error: %v\n", name, err)
 			errors++
 			continue
 		}
 
-		if xmp == nil || !xmp.HasAdobeData() {
+		if !report.HasAdobeData() {
 			fmt.Printf("  %-30s skipped (no Adobe metadata)\n", name)
 			skipped++
 			continue
 		}
 
 		if *dryRun {
-			printDryRun(name, xmp, cfg.Replacements)
+			printDryRun(name, report, cfg.Replacements)
 			cleaned++
 			continue
 		}
@@ -81,7 +81,7 @@ func runClean(args []string) {
 			continue
 		}
 
-		_, result, err := CleanXMPInJPEG(data, cfg.Replacements)
+		_, result, err := CleanJPEG(data, cfg.Replacements)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %-30s error: %v\n", name, err)
 			errors++
@@ -111,7 +111,7 @@ func runClean(args []string) {
 }
 
 // printDryRun shows what fields would be changed in a file without writing.
-func printDryRun(name string, xmp *XMPData, replacements map[string]string) {
+func printDryRun(name string, report *FileReport, replacements map[string]string) {
 	repl := func(key string) string {
 		if v, ok := replacements[key]; ok {
 			return v
@@ -124,29 +124,34 @@ func printDryRun(name string, xmp *XMPData, replacements map[string]string) {
 	type change struct{ field, from, to string }
 	var changes []change
 
-	if xmp.CreatorTool != "" {
-		changes = append(changes, change{"CreatorTool", xmp.CreatorTool, repl("CreatorTool")})
-	}
-	if xmp.MetadataDate != "" {
-		changes = append(changes, change{"MetadataDate", xmp.MetadataDate, repl("MetadataDate")})
-	}
-	if xmp.DocumentID != "" {
-		changes = append(changes, change{"DocumentID", xmp.DocumentID, repl("DocumentID")})
-	}
-	if xmp.InstanceID != "" {
-		changes = append(changes, change{"InstanceID", xmp.InstanceID, repl("InstanceID")})
-	}
-	if xmp.OriginalDocumentID != "" {
-		changes = append(changes, change{"OriginalDocumentID", xmp.OriginalDocumentID, repl("OriginalDocumentID")})
-	}
-	for i, agent := range xmp.SoftwareAgents {
-		if agent != "" {
-			changes = append(changes, change{
-				fmt.Sprintf("SoftwareAgent[%d]", i),
-				agent,
-				repl("SoftwareAgent"),
-			})
+	if xmp := report.XMP; xmp != nil {
+		if xmp.CreatorTool != "" {
+			changes = append(changes, change{"CreatorTool", xmp.CreatorTool, repl("CreatorTool")})
 		}
+		if xmp.MetadataDate != "" {
+			changes = append(changes, change{"MetadataDate", xmp.MetadataDate, repl("MetadataDate")})
+		}
+		if xmp.DocumentID != "" {
+			changes = append(changes, change{"DocumentID", xmp.DocumentID, repl("DocumentID")})
+		}
+		if xmp.InstanceID != "" {
+			changes = append(changes, change{"InstanceID", xmp.InstanceID, repl("InstanceID")})
+		}
+		if xmp.OriginalDocumentID != "" {
+			changes = append(changes, change{"OriginalDocumentID", xmp.OriginalDocumentID, repl("OriginalDocumentID")})
+		}
+		for i, agent := range xmp.SoftwareAgents {
+			if agent != "" {
+				changes = append(changes, change{
+					fmt.Sprintf("SoftwareAgent[%d]", i),
+					agent,
+					repl("SoftwareAgent"),
+				})
+			}
+		}
+	}
+	if report.ExifSoftware != "" {
+		changes = append(changes, change{"EXIF:Software", report.ExifSoftware, repl("Software")})
 	}
 
 	for _, c := range changes {

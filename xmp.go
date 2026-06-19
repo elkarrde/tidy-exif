@@ -96,7 +96,16 @@ func parseXMP(segment []byte) (*XMPData, error) {
 			case t.Name.Space == nsXMPMM && t.Name.Local == "History":
 				inHistory = true
 			case inHistory && t.Name.Space == nsStEvt && t.Name.Local == "softwareAgent":
+				// element form: <stEvt:softwareAgent>value</stEvt:softwareAgent>
 				d.SoftwareAgents = append(d.SoftwareAgents, nextCharData(dec))
+			case inHistory:
+				// attribute form (what Lightroom/Photoshop actually write):
+				// <rdf:li ... stEvt:softwareAgent="value" .../>
+				for _, a := range t.Attr {
+					if matchAttr(a, nsStEvt, "softwareAgent", "stEvt") {
+						d.SoftwareAgents = append(d.SoftwareAgents, a.Value)
+					}
+				}
 			}
 
 		case xml.EndElement:
@@ -174,7 +183,13 @@ func marshalXMP(original []byte, cleaned *XMPData) ([]byte, error) {
 	for _, f := range fields {
 		xmlPart = patchField(xmlPart, f.name, f.value)
 	}
-	xmlPart = patchAllElements(xmlPart, "stEvt:softwareAgent", cleaned.SoftwareAgents)
+	// All history entries are replaced with the same value (see cleanXMP), so a
+	// single global replacement across attribute and element forms suffices.
+	agentRepl := ""
+	if len(cleaned.SoftwareAgents) > 0 {
+		agentRepl = cleaned.SoftwareAgents[0]
+	}
+	xmlPart = patchAll(xmlPart, "stEvt:softwareAgent", agentRepl)
 
 	patched := append(append([]byte(nil), xmpSig...), xmlPart...)
 	return adjustPadding(patched, len(original))
@@ -199,20 +214,16 @@ func patchField(xmlBytes []byte, name, replacement string) []byte {
 	return xmlBytes
 }
 
-// patchAllElements replaces the content of every <name>...</name> occurrence.
-// The i-th match gets replacements[i]; any match beyond the slice length gets "".
-func patchAllElements(xmlBytes []byte, name string, replacements []string) []byte {
+// patchAll replaces the value of every occurrence of a field in raw XML bytes,
+// in both attribute form (name="value" / name='value') and element form
+// (<name>value</name>). Used for repeated fields such as history softwareAgent.
+func patchAll(xmlBytes []byte, name, replacement string) []byte {
 	qn := regexp.QuoteMeta(name)
-	re := regexp.MustCompile(`<` + qn + `>[^<]*</` + qn + `>`)
-	i := 0
-	return re.ReplaceAllFunc(xmlBytes, func(_ []byte) []byte {
-		r := ""
-		if i < len(replacements) {
-			r = replacements[i]
-		}
-		i++
-		return []byte(`<` + name + `>` + r + `</` + name + `>`)
-	})
+	out := xmlBytes
+	out = regexp.MustCompile(qn+`="[^"]*"`).ReplaceAll(out, []byte(name+`="`+replacement+`"`))
+	out = regexp.MustCompile(qn+`='[^']*'`).ReplaceAll(out, []byte(name+`='`+replacement+`'`))
+	out = regexp.MustCompile(`<`+qn+`>[^<]*</`+qn+`>`).ReplaceAll(out, []byte(`<`+name+`>`+replacement+`</`+name+`>`))
+	return out
 }
 
 // adjustPadding expands the xpacket padding in data to reach exactly targetLen bytes.

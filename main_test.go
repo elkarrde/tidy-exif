@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"testing"
 )
 
@@ -45,5 +46,17 @@ func TestNormaliseArgs(t *testing.T) {
 				t.Errorf("normaliseArgs(%v)[%d] = %q, want %q", c.input, i, got[i], c.want[i])
 			}
 		}
+	}
+}
+
+func TestFlagPrefix(t *testing.T) {
+	// Help output uses the native flag style per platform; parsing still
+	// accepts both everywhere (see normaliseArgs).
+	want := "--"
+	if runtime.GOOS == "windows" {
+		want = "/"
+	}
+	if got := flagPrefix(); got != want {
+		t.Errorf("flagPrefix() on %s = %q, want %q", runtime.GOOS, got, want)
 	}
 }

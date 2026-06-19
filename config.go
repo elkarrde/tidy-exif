@@ -15,6 +15,7 @@ var knownFields = map[string]bool{
 	"InstanceID":         true,
 	"OriginalDocumentID": true,
 	"SoftwareAgent":      true,
+	"Software":           true, // EXIF IFD0 Software tag (0x0131)
 }
 
 // Config holds per-field replacement values from a TOML config file.

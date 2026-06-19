@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	version   = "0.1.0"
-	build     = "1"
-	buildDate = "2026-05-22"
+	version   = "0.1.3"
+	build     = "2"
+	buildDate = "2026-06-19"
 )
 
 func main() {
@@ -79,19 +79,34 @@ func printVersion() {
 	fmt.Printf("tidy-exif %s (build %s, %s)\n", version, build, buildDate)
 }
 
+// flagPrefix returns the flag style native to the host platform for help
+// output. Both /flag and --flag are accepted everywhere (see normaliseArgs);
+// this only controls how options are displayed.
+func flagPrefix() string {
+	if runtime.GOOS == "windows" {
+		return "/"
+	}
+	return "--"
+}
+
 func printHelp() {
+	p := flagPrefix()
+	other := "Windows /flag style also accepted"
+	if p == "/" {
+		other = "Unix --flag style also accepted"
+	}
 	fmt.Printf(`tidy-exif %s - remove Adobe software signatures from image metadata
 
 Usage:
   tidy-exif check [options]   scan files, report Adobe metadata fields
   tidy-exif clean [options]   remove or replace Adobe metadata fields
 
-Options (both /flag and --flag accepted on all platforms):
-  /dir PATH       directory to process (default: ./)
-  /ext LIST       file extensions, comma-separated (default: jpg,jpeg)
-  /dry-run        [clean] show what would change without writing
-  /backup         [clean] write .bak backup before modifying each file
-  /config PATH    [clean] TOML file mapping field names to replacement values
-  /version        print version and exit
-`, version)
+Options (%s):
+  %[3]sdir PATH       directory to process (default: ./)
+  %[3]sext LIST       file extensions, comma-separated (default: jpg,jpeg)
+  %[3]sdry-run        [clean] show what would change without writing
+  %[3]sbackup         [clean] write .bak backup before modifying each file
+  %[3]sconfig PATH    [clean] TOML file mapping field names to replacement values
+  %[3]sversion        print version and exit
+`, version, other, p)
 }

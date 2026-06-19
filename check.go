@@ -28,9 +28,9 @@ func runCheck(args []string) {
 		return
 	}
 
-	fmt.Printf("  %3s  %-24s  %-30s  %-19s  %3s  %4s\n",
-		"#", "Filename", "CreatorTool", "Date", "IDs", "Hist")
-	fmt.Printf("  %s\n", strings.Repeat("-", 93))
+	fmt.Printf("  %3s  %-24s  %-26s  %3s  %4s  %-26s\n",
+		"#", "Filename", "CreatorTool", "IDs", "Hist", "EXIF Software")
+	fmt.Printf("  %s\n", strings.Repeat("-", 95))
 
 	var withAdobe int
 	for i, path := range files {
@@ -42,36 +42,37 @@ func runCheck(args []string) {
 			continue
 		}
 
-		xmp, err := ParseXMPFromJPEG(data)
+		report, err := InspectJPEG(data)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "  %3d  %-24s  error: %v\n", i+1, truncate(name, 24), err)
 			continue
 		}
 
-		if xmp == nil || !xmp.HasAdobeData() {
+		if !report.HasAdobeData() {
 			fmt.Printf("  %3d  %-24s  (no Adobe metadata)\n", i+1, truncate(name, 24))
 			continue
 		}
 
 		withAdobe++
-		idCount := 0
-		if xmp.DocumentID != "" {
-			idCount++
-		}
-		if xmp.InstanceID != "" {
-			idCount++
-		}
-		if xmp.OriginalDocumentID != "" {
-			idCount++
+		var creatorTool string
+		var idCount, histCount int
+		if x := report.XMP; x != nil {
+			creatorTool = x.CreatorTool
+			histCount = len(x.SoftwareAgents)
+			for _, id := range []string{x.DocumentID, x.InstanceID, x.OriginalDocumentID} {
+				if id != "" {
+					idCount++
+				}
+			}
 		}
 
-		fmt.Printf("  %3d  %-24s  %-30s  %-19s  %3d  %4d\n",
+		fmt.Printf("  %3d  %-24s  %-26s  %3d  %4d  %-26s\n",
 			i+1,
 			truncate(name, 24),
-			truncate(xmp.CreatorTool, 30),
-			truncate(xmp.MetadataDate, 19),
+			truncate(creatorTool, 26),
 			idCount,
-			len(xmp.SoftwareAgents),
+			histCount,
+			truncate(report.ExifSoftware, 26),
 		)
 	}
 

@@ -84,6 +84,63 @@ func TestParseXMP(t *testing.T) {
 	}
 }
 
+// attrHistoryXMP uses the attribute form of history entries that Lightroom and
+// Photoshop actually write (<rdf:li stEvt:softwareAgent="..."/>). Regression
+// fixture: the original parser only handled the element form and missed these.
+const attrHistoryXMP = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+        xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+        xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/"
+        xmlns:stEvt="http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"
+        xmp:CreatorTool="">
+      <xmpMM:History>
+        <rdf:Seq>
+          <rdf:li stEvt:action="saved" stEvt:softwareAgent="Adobe Photoshop Lightroom 5.0 (Windows)" stEvt:when="2017-10-25T00:50:38+02:00"/>
+          <rdf:li stEvt:action="saved" stEvt:softwareAgent="Adobe Photoshop CS6 (Windows)" stEvt:when="2017-10-25T01:06:07+02:00"/>
+        </rdf:Seq>
+      </xmpMM:History>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`
+
+func TestParseXMPAttributeHistory(t *testing.T) {
+	d, err := parseXMP(makeXMPSeg(attrHistoryXMP))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !d.HasAdobeData() {
+		t.Fatal("HasAdobeData = false for attribute-form history (regression)")
+	}
+	if len(d.SoftwareAgents) != 2 {
+		t.Fatalf("SoftwareAgents len = %d, want 2", len(d.SoftwareAgents))
+	}
+	if d.SoftwareAgents[0] != "Adobe Photoshop Lightroom 5.0 (Windows)" ||
+		d.SoftwareAgents[1] != "Adobe Photoshop CS6 (Windows)" {
+		t.Errorf("agents = %q", d.SoftwareAgents)
+	}
+}
+
+func TestCleanAttributeHistoryEmptiesAgents(t *testing.T) {
+	jpeg := buildTestJPEGWithXMP(attrHistoryXMP)
+	modified, out, err := CleanJPEG(jpeg, nil)
+	if err != nil || !modified {
+		t.Fatalf("CleanJPEG: modified=%v err=%v", modified, err)
+	}
+	if len(out) != len(jpeg) {
+		t.Errorf("length changed: %d → %d", len(jpeg), len(out))
+	}
+	if bytes.Contains(out, []byte("Adobe Photoshop")) {
+		t.Error("attribute-form softwareAgent not emptied")
+	}
+	rep, _ := InspectJPEG(out)
+	if rep.HasAdobeData() {
+		t.Errorf("still reports Adobe data after clean: %+v", rep.XMP)
+	}
+}
+
 func TestParseXMPNotXMP(t *testing.T) {
 	_, err := parseXMP([]byte("not an xmp segment"))
 	if err == nil {
