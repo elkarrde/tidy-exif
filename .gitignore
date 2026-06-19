@@ -30,4 +30,6 @@ go.work
 
 # Claude
 .claude
-resume.sh
+
+# Test data
+testdata/*
