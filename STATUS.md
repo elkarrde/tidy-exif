@@ -5,11 +5,11 @@
 | Field | Value |
 |:--|:--|
 | Phase | feature-complete (phases 1–8 + Exif done) |
-| Version | untagged (v0.1.3 in code) |
+| Version | v0.1.3 tagged (annotated, local — not pushed) |
 | Build | passing |
 | Tests | passing |
 | Deployed | not released |
-| Blocker | tag `v0.1.3`, build + attach Linux/Windows binaries |
+| Blocker | push tag `v0.1.3` to Codeberg + upload Linux/Windows archives to the release |
 
 ## Notes
 
@@ -36,5 +36,8 @@ move; behavior unchanged.
 Added `make dist` (2026-06-20): builds both targets and packages MPL-2.0-compliant
 release archives in `dist/` — `tidy-exif-<version>-linux-amd64.tar.gz` and
 `tidy-exif-<version>-windows-amd64.zip`, each bundling the binary plus `LICENSE`
-and `README.md`. Version is read from `cmd/tidy-exif/main.go`. Only the actual
-tag + upload to Codeberg remains.
+and `README.md`. Version is read from `cmd/tidy-exif/main.go`.
+
+Tagged `v0.1.3` (annotated, local) and built the `dist/` archives (2026-06-20).
+Remaining: `git push origin v0.1.3` and upload the two archives to the Codeberg
+release.
