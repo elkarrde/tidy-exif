@@ -115,6 +115,23 @@ GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe ./cmd/tidy-exif
 A `Makefile` with `build` / `build-windows` targets is provided. To install:
 `go install codeberg.org/elkarrde/tidy-exif/cmd/tidy-exif@latest`.
 
+### Release archives
+
+```
+make dist
+```
+
+builds both binaries and packages release archives in `dist/`, each bundling the
+binary together with `LICENSE` and `README.md`:
+
+- `tidy-exif-<version>-linux-amd64.tar.gz`
+- `tidy-exif-<version>-windows-amd64.zip`
+
+The version is read from `cmd/tidy-exif/main.go`. Bundling `LICENSE` with the
+binary keeps the distribution MPL-2.0 compliant — recipients of the executable
+also receive the license and a pointer to the source. (`make dist` requires the
+`zip` CLI for the Windows archive.)
+
 ## Relation to exif2xlsx
 
 tidy-exif shares its file-walking approach with the [exif2xlsx](../exif2xlsx/) project in this repository. Unlike exif2xlsx, it does **not** depend on the `goexif` library: both the `check` (read) and `clean` (write) paths operate directly on the raw JPEG segment bytes via a hand-rolled parser — the XMP APP1 segment (`xmp.go`) and the Exif APP1 Software tag (`exif.go`), unified in `inspect.go`. The tool's only third-party dependency is `github.com/BurntSushi/toml` for config parsing.

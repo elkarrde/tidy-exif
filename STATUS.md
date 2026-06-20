@@ -32,3 +32,9 @@ Repo reorganized (2026-06-20) to a lapis-style layout: CLI in `cmd/tidy-exif/`
 (`package main`), metadata engine in `internal/meta/` (`package meta`) — the latter
 is what will extract into the `exifscalpel` library. Build/vet/tests green after the
 move; behavior unchanged.
+
+Added `make dist` (2026-06-20): builds both targets and packages MPL-2.0-compliant
+release archives in `dist/` — `tidy-exif-<version>-linux-amd64.tar.gz` and
+`tidy-exif-<version>-windows-amd64.zip`, each bundling the binary plus `LICENSE`
+and `README.md`. Version is read from `cmd/tidy-exif/main.go`. Only the actual
+tag + upload to Codeberg remains.

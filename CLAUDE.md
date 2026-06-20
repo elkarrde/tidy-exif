@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 make build            # build the native binary
 make build-windows    # cross-compile tidy-exif.exe (GOOS=windows)
+make dist             # build both + package dist/ archives (binary + LICENSE + README)
 make clean
 go test ./...         # run the test suite (passing)
 ```
@@ -53,8 +54,9 @@ Extensions `jpg,jpeg` only. Default action empties all target fields; `/backup`
 opts into a `.bak` copy; `/dry-run` reports without writing.
 
 `TODO.md` reflects actual code state: phases 1–8 plus the Exif Software work are
-implemented and checked off, and the real-JPEG smoke test is done. Only the
-release task remains (tag `v0.1.3`, attach binaries). Keep its checkboxes in sync.
+implemented and checked off, the real-JPEG smoke test is done, and `make dist`
+packages the MPL-2.0-compliant release archives. Only the release task remains
+(tag `v0.1.3`, run `make dist`, attach the archives). Keep its checkboxes in sync.
 
 ## Housekeeping
 

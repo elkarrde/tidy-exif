@@ -109,7 +109,8 @@ segment length and avoid rewriting downstream JPEG offsets.
 - [x] `go build` produces a working binary
 - [x] `GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe .` works from Linux *(verified 2026-06-19)*
 - [x] Test against real Lightroom-exported JPEGs *(2026-06-19; found + fixed the attribute-form history bug)*
-- [ ] Tag `v0.1.3` on Codeberg, build + attach Linux/Windows binaries
+- [x] `make dist` packages Linux (`.tar.gz`) + Windows (`.zip`) archives, each bundling the binary, `LICENSE`, and `README.md` *(2026-06-20)*
+- [ ] Tag `v0.1.3` on Codeberg, build (`make dist`) + attach the Linux/Windows archives
 
 ---
 

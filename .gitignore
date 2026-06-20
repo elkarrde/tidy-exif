@@ -36,3 +36,6 @@ testdata/*
 
 # Design
 design/*
+
+# Release archives built by `make dist`
+dist/
