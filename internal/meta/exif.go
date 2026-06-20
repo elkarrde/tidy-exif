@@ -16,20 +16,20 @@ import (
 	"strings"
 )
 
-// exifSig is the prefix of an Exif APP1 segment payload; the TIFF header begins
+// exifSig is the prefix of an EXIF APP1 segment payload; the TIFF header begins
 // immediately after it.
 var exifSig = []byte("Exif\x00\x00")
 
 const exifSoftwareTag = 0x0131 // TIFF/EXIF IFD0 "Software" tag
 
-// isExifSeg reports whether a JPEG segment is the Exif APP1 segment.
+// isExifSeg reports whether a JPEG segment is the EXIF APP1 segment.
 func isExifSeg(s jpegSeg) bool {
 	return s.marker == 0xE1 && bytes.HasPrefix(s.data, exifSig)
 }
 
-// exifTIFF locates the TIFF block within an Exif APP1 payload and returns the
+// exifTIFF locates the TIFF block within an EXIF APP1 payload and returns the
 // byte order plus the absolute offset (within payload) of the IFD0 entry list.
-// found is false when the payload is not a parseable Exif/TIFF structure.
+// found is false when the payload is not a parseable EXIF/TIFF structure.
 func exifTIFF(payload []byte) (order binary.ByteOrder, ifd0 int, found bool) {
 	if !bytes.HasPrefix(payload, exifSig) {
 		return nil, 0, false
@@ -102,7 +102,7 @@ func isAdobeSoftware(s string) bool {
 	return strings.Contains(strings.ToLower(s), "adobe")
 }
 
-// readExifSoftware returns the IFD0 Software value (NUL trimmed) from an Exif
+// readExifSoftware returns the IFD0 Software value (NUL trimmed) from an EXIF
 // APP1 payload, or "" if the tag is absent.
 func readExifSoftware(payload []byte) string {
 	start, end, found := softwareValueRange(payload)

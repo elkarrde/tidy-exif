@@ -5,7 +5,7 @@
 package meta
 
 // Unified inspection and cleaning across both metadata blocks a JPEG may carry:
-// the XMP APP1 segment (xmp.go) and the Exif APP1 Software tag (exif.go).
+// the XMP APP1 segment (xmp.go) and the EXIF APP1 Software tag (exif.go).
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ func InspectJPEG(data []byte) (*FileReport, error) {
 }
 
 // CleanJPEG empties (or replaces) Adobe fields in both the XMP segment and the
-// Exif Software tag, in a single parse/write. Returns (modified, result, error);
+// EXIF Software tag, in a single parse/write. Returns (modified, result, error);
 // when nothing changes, modified is false and the original bytes are returned.
 func CleanJPEG(data []byte, replacements map[string]string) (bool, []byte, error) {
 	segs, tail, err := parseJPEG(bytes.NewReader(data))

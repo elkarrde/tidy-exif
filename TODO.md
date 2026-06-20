@@ -23,7 +23,7 @@ implementation diverged from the original plan.
 ## Phase 1 — Scaffold
 
 - [x] Create `go.mod` with module name `codeberg.org/elkarrde/tidy-exif` *(declares `go 1.16`)*
-- [ ] ~~Add dependency: `github.com/rwcarlsen/goexif`~~ — dropped; not used, parser is hand-rolled
+- [x] ~~Add dependency: `github.com/rwcarlsen/goexif`~~ — dropped; not used, parser is hand-rolled
 - [x] Add dependency: `github.com/BurntSushi/toml` for config file parsing
 - [x] Create `Makefile` with targets: `build`, `build-windows`, `clean`
 - [x] Create `main.go` with version/build constants and subcommand dispatch
