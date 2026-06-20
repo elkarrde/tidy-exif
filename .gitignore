@@ -4,6 +4,7 @@
 #
 # Binaries for programs and plugins
 tidy-exif
+tidy-exif-arm*
 *.exe
 *.exe~
 *.dll

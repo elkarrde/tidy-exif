@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 make build            # build the native binary
 make build-windows    # cross-compile tidy-exif.exe (GOOS=windows)
-make dist             # build both + package dist/ archives (binary + LICENSE + README)
+make build-arm64      # cross-compile tidy-exif-arm64 (GOOS=linux GOARCH=arm64)
+make dist             # build all + package dist/ archives (binary + LICENSE + README)
 make clean
 go test ./...         # run the test suite (passing)
 ```

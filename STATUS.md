@@ -33,10 +33,16 @@ Repo reorganized (2026-06-20) to a lapis-style layout: CLI in `cmd/tidy-exif/`
 is what will extract into the `exifscalpel` library. Build/vet/tests green after the
 move; behavior unchanged.
 
-Added `make dist` (2026-06-20): builds both targets and packages MPL-2.0-compliant
-release archives in `dist/` — `tidy-exif-<version>-linux-amd64.tar.gz` and
+Added `make dist` (2026-06-20): builds all targets and packages MPL-2.0-compliant
+release archives in `dist/` — `tidy-exif-<version>-linux-amd64.tar.gz`,
+`tidy-exif-<version>-linux-arm64.tar.gz`, and
 `tidy-exif-<version>-windows-amd64.zip`, each bundling the binary plus `LICENSE`
 and `README.md`. Version is read from `cmd/tidy-exif/main.go`.
+
+Added 64-bit ARM Linux target (2026-06-20): `make build-arm64`
+(`GOOS=linux GOARCH=arm64`), now also packaged by `make dist`. Pure Go / no cgo,
+so it cross-compiles to a static binary from the amd64 host — verified building
+clean, no need to compile on the Pine64.
 
 Tagged `v0.1.3` (annotated, local) and built the `dist/` archives (2026-06-20).
 Remaining: `git push origin v0.1.3` and upload the two archives to the Codeberg

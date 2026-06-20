@@ -112,7 +112,14 @@ Cross-compile for Windows from Linux/macOS:
 GOOS=windows GOARCH=amd64 go build -o tidy-exif.exe ./cmd/tidy-exif
 ```
 
-A `Makefile` with `build` / `build-windows` targets is provided. To install:
+Cross-compile for 64-bit ARM Linux (e.g. Pine64, Raspberry Pi):
+```
+GOOS=linux GOARCH=arm64 go build -o tidy-exif-arm64 ./cmd/tidy-exif
+```
+The tool is pure Go (no cgo), so cross-compilation produces a static binary —
+no need to build on the target board.
+
+A `Makefile` with `build` / `build-windows` / `build-arm64` targets is provided. To install:
 `go install codeberg.org/elkarrde/tidy-exif/cmd/tidy-exif@latest`.
 
 ### Release archives
@@ -125,6 +132,7 @@ builds both binaries and packages release archives in `dist/`, each bundling the
 binary together with `LICENSE` and `README.md`:
 
 - `tidy-exif-<version>-linux-amd64.tar.gz`
+- `tidy-exif-<version>-linux-arm64.tar.gz`
 - `tidy-exif-<version>-windows-amd64.zip`
 
 The version is read from `cmd/tidy-exif/main.go`. Bundling `LICENSE` with the
