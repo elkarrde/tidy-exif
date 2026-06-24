@@ -7,7 +7,20 @@ package meta
 import (
 	"bytes"
 	"testing"
+
+	"codeberg.org/elkarrde/exifscalpel/jpeg"
 )
+
+// The XMP field parser/marshaller (both attribute and element forms, padding
+// math) is tested in exifscalpel/xmp. Here we test tidy-exif's JPEG-level
+// orchestration: that CleanJPEG / CleanXMPInJPEG drive xmp.Clean correctly and
+// preserve segment length. The attribute-form history case below is the
+// mandatory regression — Lightroom/Photoshop write softwareAgent as an
+// attribute, which the original element-only parser silently missed.
+
+// xmpSig is the Adobe xap namespace signature that prefixes an XMP APP1 payload
+// (= jpeg.Segment.Data for an XMP segment). Declared locally to build fixtures.
+var xmpSig = []byte("http://ns.adobe.com/xap/1.0/\x00")
 
 // sampleXMP is a representative Lightroom-style XMP block with all six target fields.
 const sampleXMP = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
@@ -39,55 +52,6 @@ const sampleXMP = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 </x:xmpmeta>
 <?xpacket end="w"?>`
 
-func makeXMPSeg(content string) []byte {
-	return append(append([]byte(nil), xmpSig...), []byte(content)...)
-}
-
-func buildTestJPEGWithXMP(xmpContent string) []byte {
-	payload := append(append([]byte(nil), xmpSig...), []byte(xmpContent)...)
-	segLen := uint16(len(payload) + 2)
-	var buf bytes.Buffer
-	buf.Write([]byte{0xFF, 0xD8})
-	buf.Write([]byte{0xFF, 0xE1})
-	buf.WriteByte(byte(segLen >> 8))
-	buf.WriteByte(byte(segLen))
-	buf.Write(payload)
-	buf.Write([]byte{0xFF, 0xD9})
-	return buf.Bytes()
-}
-
-func TestParseXMP(t *testing.T) {
-	seg := makeXMPSeg(sampleXMP)
-	d, err := parseXMP(seg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if d.CreatorTool != "Adobe Lightroom Classic 13.0" {
-		t.Errorf("CreatorTool = %q", d.CreatorTool)
-	}
-	if d.MetadataDate != "2024-01-15T12:00:00+01:00" {
-		t.Errorf("MetadataDate = %q", d.MetadataDate)
-	}
-	if d.DocumentID != "xmp.did:abc123" {
-		t.Errorf("DocumentID = %q", d.DocumentID)
-	}
-	if d.InstanceID != "xmp.iid:def456" {
-		t.Errorf("InstanceID = %q", d.InstanceID)
-	}
-	if d.OriginalDocumentID != "xmp.did:xyz789" {
-		t.Errorf("OriginalDocumentID = %q", d.OriginalDocumentID)
-	}
-	if len(d.SoftwareAgents) != 2 {
-		t.Fatalf("SoftwareAgents len = %d, want 2", len(d.SoftwareAgents))
-	}
-	if d.SoftwareAgents[0] != "Adobe Lightroom Classic 13.0" {
-		t.Errorf("SoftwareAgents[0] = %q", d.SoftwareAgents[0])
-	}
-	if d.SoftwareAgents[1] != "Adobe Photoshop 2024" {
-		t.Errorf("SoftwareAgents[1] = %q", d.SoftwareAgents[1])
-	}
-}
-
 // attrHistoryXMP uses the attribute form of history entries that Lightroom and
 // Photoshop actually write (<rdf:li stEvt:softwareAgent="..."/>). Regression
 // fixture: the original parser only handled the element form and missed these.
@@ -110,31 +74,21 @@ const attrHistoryXMP = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 </x:xmpmeta>
 <?xpacket end="w"?>`
 
-func TestParseXMPAttributeHistory(t *testing.T) {
-	d, err := parseXMP(makeXMPSeg(attrHistoryXMP))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !d.HasAdobeData() {
-		t.Fatal("HasAdobeData = false for attribute-form history (regression)")
-	}
-	if len(d.SoftwareAgents) != 2 {
-		t.Fatalf("SoftwareAgents len = %d, want 2", len(d.SoftwareAgents))
-	}
-	if d.SoftwareAgents[0] != "Adobe Photoshop Lightroom 5.0 (Windows)" ||
-		d.SoftwareAgents[1] != "Adobe Photoshop CS6 (Windows)" {
-		t.Errorf("agents = %q", d.SoftwareAgents)
-	}
+func buildTestJPEGWithXMP(xmpContent string) []byte {
+	payload := append(append([]byte(nil), xmpSig...), []byte(xmpContent)...)
+	var buf bytes.Buffer
+	_ = jpeg.Write(&buf, []jpeg.Segment{{Marker: 0xE1, Data: payload}}, []byte{0xFF, 0xD9})
+	return buf.Bytes()
 }
 
 func TestCleanAttributeHistoryEmptiesAgents(t *testing.T) {
-	jpeg := buildTestJPEGWithXMP(attrHistoryXMP)
-	modified, out, err := CleanJPEG(jpeg, nil)
+	jpegData := buildTestJPEGWithXMP(attrHistoryXMP)
+	modified, out, err := CleanJPEG(jpegData, nil)
 	if err != nil || !modified {
 		t.Fatalf("CleanJPEG: modified=%v err=%v", modified, err)
 	}
-	if len(out) != len(jpeg) {
-		t.Errorf("length changed: %d → %d", len(jpeg), len(out))
+	if len(out) != len(jpegData) {
+		t.Errorf("length changed: %d → %d", len(jpegData), len(out))
 	}
 	if bytes.Contains(out, []byte("Adobe Photoshop")) {
 		t.Error("attribute-form softwareAgent not emptied")
@@ -145,131 +99,34 @@ func TestCleanAttributeHistoryEmptiesAgents(t *testing.T) {
 	}
 }
 
-func TestParseXMPNotXMP(t *testing.T) {
-	_, err := parseXMP([]byte("not an xmp segment"))
-	if err == nil {
-		t.Error("expected error for non-XMP input")
-	}
-}
-
-func TestCleanXMP(t *testing.T) {
-	xmp := &XMPData{
-		CreatorTool:        "Adobe Lightroom Classic 13.0",
-		MetadataDate:       "2024-01-15",
-		DocumentID:         "xmp.did:abc",
-		InstanceID:         "xmp.iid:def",
-		OriginalDocumentID: "xmp.did:xyz",
-		SoftwareAgents:     []string{"Adobe Lightroom Classic 13.0", "Adobe Photoshop 2024"},
-	}
-
-	cleaned := cleanXMP(xmp, nil)
-
-	if cleaned.CreatorTool != "" || cleaned.MetadataDate != "" || cleaned.DocumentID != "" ||
-		cleaned.InstanceID != "" || cleaned.OriginalDocumentID != "" {
-		t.Errorf("cleanXMP did not zero all simple fields: %+v", cleaned)
-	}
-	for i, a := range cleaned.SoftwareAgents {
-		if a != "" {
-			t.Errorf("SoftwareAgents[%d] = %q, want empty", i, a)
-		}
-	}
-	// original must be unchanged
-	if xmp.CreatorTool == "" {
-		t.Error("cleanXMP mutated the input")
-	}
-}
-
-func TestCleanXMPWithReplacements(t *testing.T) {
-	xmp := &XMPData{
-		CreatorTool: "Adobe Lightroom Classic 13.0",
-		DocumentID:  "xmp.did:abc",
-	}
-	cleaned := cleanXMP(xmp, map[string]string{"CreatorTool": "cleaned"})
-	if cleaned.CreatorTool != "cleaned" {
-		t.Errorf("CreatorTool = %q, want %q", cleaned.CreatorTool, "cleaned")
-	}
-	if cleaned.DocumentID != "" {
-		t.Errorf("DocumentID = %q, want empty", cleaned.DocumentID)
-	}
-}
-
-func TestMarshalXMPPreservesLength(t *testing.T) {
-	original := makeXMPSeg(sampleXMP)
-	xmp, err := parseXMP(original)
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := marshalXMP(original, cleanXMP(xmp, nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result) != len(original) {
-		t.Errorf("length: got %d, want %d", len(result), len(original))
-	}
-}
-
-func TestMarshalXMPZeroesValues(t *testing.T) {
-	original := makeXMPSeg(sampleXMP)
-	xmp, err := parseXMP(original)
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := marshalXMP(original, cleanXMP(xmp, nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	reparsed, err := parseXMP(result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if reparsed.CreatorTool != "" {
-		t.Errorf("CreatorTool after clean = %q", reparsed.CreatorTool)
-	}
-	if reparsed.DocumentID != "" {
-		t.Errorf("DocumentID after clean = %q", reparsed.DocumentID)
-	}
-	if reparsed.InstanceID != "" {
-		t.Errorf("InstanceID after clean = %q", reparsed.InstanceID)
-	}
-	if reparsed.OriginalDocumentID != "" {
-		t.Errorf("OriginalDocumentID after clean = %q", reparsed.OriginalDocumentID)
-	}
-	for i, a := range reparsed.SoftwareAgents {
-		if a != "" {
-			t.Errorf("SoftwareAgents[%d] after clean = %q", i, a)
-		}
-	}
-}
-
 func TestCleanXMPInJPEG(t *testing.T) {
-	jpeg := buildTestJPEGWithXMP(sampleXMP)
+	jpegData := buildTestJPEGWithXMP(sampleXMP)
 
-	modified, result, err := CleanXMPInJPEG(jpeg, nil)
+	modified, result, err := CleanXMPInJPEG(jpegData, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !modified {
 		t.Fatal("expected modified=true")
 	}
-	if len(result) != len(jpeg) {
-		t.Errorf("JPEG size changed: got %d, want %d", len(result), len(jpeg))
+	if len(result) != len(jpegData) {
+		t.Errorf("JPEG size changed: got %d, want %d", len(result), len(jpegData))
 	}
 
-	xmp, err := ParseXMPFromJPEG(result)
+	f, err := ParseXMPFromJPEG(result)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if xmp == nil {
+	if f == nil {
 		t.Fatal("no XMP segment in result")
 	}
-	if xmp.CreatorTool != "" {
-		t.Errorf("CreatorTool = %q after clean", xmp.CreatorTool)
+	if f.CreatorTool != "" {
+		t.Errorf("CreatorTool = %q after clean", f.CreatorTool)
 	}
-	if len(xmp.SoftwareAgents) != 2 {
-		t.Errorf("SoftwareAgents len = %d, want 2", len(xmp.SoftwareAgents))
+	if len(f.SoftwareAgents) != 2 {
+		t.Errorf("SoftwareAgents len = %d, want 2", len(f.SoftwareAgents))
 	}
-	for i, a := range xmp.SoftwareAgents {
+	for i, a := range f.SoftwareAgents {
 		if a != "" {
 			t.Errorf("SoftwareAgents[%d] = %q after clean", i, a)
 		}
@@ -277,33 +134,16 @@ func TestCleanXMPInJPEG(t *testing.T) {
 }
 
 func TestCleanXMPInJPEGNoXMP(t *testing.T) {
-	jpeg := []byte{0xFF, 0xD8, 0xFF, 0xD9}
+	jpegData := []byte{0xFF, 0xD8, 0xFF, 0xD9}
 
-	modified, result, err := CleanXMPInJPEG(jpeg, nil)
+	modified, result, err := CleanXMPInJPEG(jpegData, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if modified {
 		t.Error("expected modified=false for JPEG with no XMP")
 	}
-	if !bytes.Equal(result, jpeg) {
+	if !bytes.Equal(result, jpegData) {
 		t.Error("result differs from input for no-XMP JPEG")
-	}
-}
-
-func TestHasAdobeData(t *testing.T) {
-	empty := &XMPData{}
-	if empty.HasAdobeData() {
-		t.Error("empty XMPData.HasAdobeData() = true")
-	}
-
-	withData := &XMPData{CreatorTool: "Lightroom"}
-	if !withData.HasAdobeData() {
-		t.Error("XMPData with CreatorTool.HasAdobeData() = false")
-	}
-
-	withAgents := &XMPData{SoftwareAgents: []string{"", "Photoshop"}}
-	if !withAgents.HasAdobeData() {
-		t.Error("XMPData with non-empty SoftwareAgent.HasAdobeData() = false")
 	}
 }

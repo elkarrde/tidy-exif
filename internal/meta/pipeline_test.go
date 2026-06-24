@@ -42,12 +42,12 @@ func TestCleanPipeline(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		xmp, err := ParseXMPFromJPEG(data)
+		f, err := ParseXMPFromJPEG(data)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if xmp == nil || !xmp.HasAdobeData() {
+		if f == nil || !f.Any() {
 			skipped++
 			continue
 		}
@@ -71,15 +71,15 @@ func TestCleanPipeline(t *testing.T) {
 
 	// Verify the cleaned file no longer has Adobe data.
 	data, _ := os.ReadFile(filepath.Join(tmp, "with.jpg"))
-	xmp, err := ParseXMPFromJPEG(data)
+	f, err := ParseXMPFromJPEG(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if xmp == nil {
+	if f == nil {
 		t.Fatal("XMP segment missing after clean")
 	}
-	if xmp.HasAdobeData() {
-		t.Errorf("file still has Adobe data after clean: %+v", xmp)
+	if f.Any() {
+		t.Errorf("file still has Adobe data after clean: %+v", f)
 	}
 }
 

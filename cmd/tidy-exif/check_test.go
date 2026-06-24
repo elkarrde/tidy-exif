@@ -14,14 +14,14 @@ func TestTruncate(t *testing.T) {
 		n     int
 		want  string
 	}{
-		{"hello", 10, "hello"},           // shorter than limit
-		{"hello world", 8, "hello..."},   // truncated with ellipsis
-		{"hi", 2, "hi"},                  // exact fit
-		{"hello", 3, "hel"},              // n<=3: hard cut, no ellipsis
-		{"hello", 4, "h..."},             // n=4: 1 char + "..."
-		{"", 10, ""},                     // empty string
-		{"abcdefgh", 8, "abcdefgh"},      // exact length
-		{"abcdefghi", 8, "abcde..."},     // one over
+		{"hello", 10, "hello"},         // shorter than limit
+		{"hello world", 8, "hello..."}, // truncated with ellipsis
+		{"hi", 2, "hi"},                // exact fit
+		{"hello", 3, "hel"},            // n<=3: hard cut, no ellipsis
+		{"hello", 4, "h..."},           // n=4: 1 char + "..."
+		{"", 10, ""},                   // empty string
+		{"abcdefgh", 8, "abcdefgh"},    // exact length
+		{"abcdefghi", 8, "abcde..."},   // one over
 	}
 	for _, c := range cases {
 		got := truncate(c.input, c.n)
