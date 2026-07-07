@@ -92,3 +92,66 @@ at `../exifscalpel/`; see its `exifscalpel-HANDOFF.md`): once the core logic is 
 library, a CLI exe and a thin
 Windows GUI/shell wrapper become equally cheap front-ends over the same engine —
 making Tier 2 (and even Tier 3's exe-behind-a-shell-ext) materially easier.
+
+---
+
+## Report film-scan (AnalogExif) metadata via `xmp.ReadProperties`
+
+**Goal:** surface the structured film-photography metadata that scanning tools
+(ExifNotes / AnalogExif) write into a JPEG's XMP packet — film stock, developer,
+lens, scanner — in tidy-exif's `check` output. This is *read-only reporting*, not
+scrubbing: these fields are worth showing, not removing. The `clean` path is
+untouched.
+
+### Why
+
+AnalogExif writes a cleaner, structured copy of these fields to XMP than to the EXIF
+`UserComment` text blob — and some (lens, scanner, scanner software) appear *only*
+in XMP, not in the EXIF block at all. exifscalpel **v0.3.1** added
+`xmp.ReadProperties` precisely for this: read arbitrary scalar XMP properties by
+namespace URI + local name (prefix-independent), with no built-in vocabulary — the
+*policy* (which namespaces/fields count as "film metadata") stays here in tidy-exif.
+
+### Fields (the tidy-exif policy)
+
+Namespaces:
+- AnalogExif — `http://analogexif.sourceforge.net/ns/`
+- aux (Adobe) — `http://ns.adobe.com/exif/1.0/aux/`
+
+Fields seen on real scans (`../masterdata/testdata/Scan-*.jpg`):
+`AnalogExif:Film`, `FilmMaker`, `FilmType`, `FilmAlias`, `DevelopProcess`,
+`Developer`, `DeveloperMaker`, `DeveloperDilution`, `DevelopTime`, `ExposureNumber`,
+`Scanner`, `ScannerMaker`, `ScannerSoftware`, plus `aux:Lens`. Start with a focused
+subset (`Film`, `FilmMaker`, `Developer`, `Lens`, `Scanner`) and grow as useful.
+
+### Where it plugs in
+
+- `internal/meta/inspect.go` — add a film field to `FileReport` (e.g.
+  `Film map[xmp.Property]string`, or a small typed struct). In `InspectJPEG`, on the
+  XMP segment (alongside the existing `xmp.Parse`), call
+  `xmp.ReadProperties(seg.Data, filmWant)` where `filmWant` is a package-level
+  `[]xmp.Property` built from the list above. Read-only: it must **not** affect
+  `HasAdobeData()` or the clean path — film metadata is preserved, not Adobe-signature
+  scrub scope.
+- `cmd/tidy-exif/check.go` — display the film fields. The current table (`#`,
+  Filename, CreatorTool, IDs, Hist, EXIF Software) is already wide, so prefer either
+  a per-file detail line printed under the row when film metadata is present, or a
+  dedicated `--film` / `-f` flag that switches to a film-oriented view. Don't widen
+  the default table.
+
+### Notes / constraints
+
+- Depends on exifscalpel **v0.3.1** (published): `go get
+  codeberg.org/elkarrde/exifscalpel@v0.3.1` — no new transitive deps (still one
+  direct dep + BurntSushi/toml).
+- `ReadProperties` returns only *simple scalar* properties; AnalogExif writes its
+  fields as scalars on `rdf:Description`, so this fits. Localized/array/struct XMP is
+  out of scope (and not used here).
+- Its error contract is best-effort: a non-XMP payload errors, but a
+  malformed/truncated packet is not reported (whatever parsed is returned). Treat an
+  absent field and a parse fault the same — just "not shown."
+- Tests: mirror a minimal AnalogExif packet as a programmatic byte-fixture (per the
+  no-real-photos rule); use the `Scan-*` files in `../masterdata/testdata` only for
+  manual spot-checks.
+- Kept separate from cleaning on purpose: this is *preserved* content the user likely
+  wants to see; tidy-exif only ever targets Adobe-signature fields.
