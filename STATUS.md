@@ -1,15 +1,15 @@
 # Status
 
-*Last updated: 2026-06-20*
+*Last updated: 2026-09-20*
 
 | Field | Value |
 |:--|:--|
-| Phase | feature-complete (phases 1–8 + Exif done) |
-| Version | v0.1.3 tagged (annotated, local — not pushed) |
+| Phase | released (v0.1.3); `main` has moved on since |
+| Version | v0.1.3 released; `main` is 5 commits ahead and still reports `0.1.3` |
 | Build | passing |
 | Tests | passing |
-| Deployed | not released |
-| Blocker | push tag `v0.1.3` to Codeberg + upload Linux/Windows archives to the release |
+| Deployed | released 2026-06-20 — [v0.1.3 on Codeberg](https://codeberg.org/elkarrde/tidy-exif/releases/tag/v0.1.3) with all three archives attached; the site is live at <https://iso3200.org/tidy-exif/> |
+| Blocker | none for v0.1.3. The next release needs a version bump in `cmd/tidy-exif/main.go` — `main` carries the exifscalpel migration, unreleased |
 
 ## Notes
 
@@ -44,6 +44,18 @@ Added 64-bit ARM Linux target (2026-06-20): `make build-arm64`
 so it cross-compiles to a static binary from the amd64 host — verified building
 clean, no need to compile on the Pine64.
 
-Tagged `v0.1.3` (annotated, local) and built the `dist/` archives (2026-06-20).
-Remaining: `git push origin v0.1.3` and upload the two archives to the Codeberg
-release.
+Released `v0.1.3` on 2026-06-20: tag pushed and all three `dist/` archives
+(linux-amd64, linux-arm64, windows-amd64) attached to the Codeberg release. The
+`tidy-exif-web` site went live at <https://iso3200.org/tidy-exif/> and serves
+those download links.
+
+**Unreleased work on `main` (2026-09-20).** Five commits since the tag moved the
+metadata engine onto the `exifscalpel` library: `internal/meta/xmp.go` and
+`jpeg.go` are gone and `exif.go` is largely gutted, with `inspect.go` now driving
+the shared primitives (net −874/+309 lines). Build, `go test ./...`, and `go vet`
+are all green on that state, but the `version` constant in
+`cmd/tidy-exif/main.go` is still `0.1.3`, so the next release must bump it. Note
+`go.mod` still pins `exifscalpel v0.1.0` while the library is at v0.3.1 — worth
+re-vendoring before cutting the next tag.
+
+`TODO.md` remains stale: every box is unchecked although phases 1–8 shipped.
