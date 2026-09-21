@@ -71,7 +71,8 @@ certificate** — an annual cost to budget for.
 - Native COM shell extension (C++/C#/Rust front-end shelling out to the Go engine)
   packaged as MSIX and code-signed.
 - Gets top-level Win11 context-menu placement and proper multi-select handling in a
-  single process. Submenus / dynamic enable-disable become possible.
+  single process. Dynamic enable-disable becomes possible. (Static submenus do
+  *not* need this tier — see the shared cascade below.)
 - Only worth it if Win11 primary-menu placement or large multi-selects become real
   user complaints.
 
@@ -92,6 +93,76 @@ at `../exifscalpel/`; see its `exifscalpel-HANDOFF.md`): once the core logic is 
 library, a CLI exe and a thin
 Windows GUI/shell wrapper become equally cheap front-ends over the same engine —
 making Tier 2 (and even Tier 3's exe-behind-a-shell-ext) materially easier.
+
+### Shared "EXIF…" cascade with sibling tools  *(plan, 2026-09-22)*
+
+**Idea:** tidy-exif is one of several small EXIF/XMP tools with the same
+right-click workflow (`../contextexif/` already ships it). Instead of each tool
+adding its own top-level entry, group them under one cascading menu item —
+**EXIF… → Tidy, Lapis, Show, Complete** (names are working titles) — with every
+submenu item launching its own separate executable.
+
+**Verdict: sound.** Windows supports static cascades natively, per-user, with the
+same registry mechanism contextexif already uses (Tier 1 level — no COM, no MSIX):
+
+```
+HKCU\Software\Classes\SystemFileAssociations\.jpg\shell\exiftools
+    MUIVerb     = "EXIF…"          ← parent label
+    SubCommands = ""               ← marks it as a cascade
+    Icon        = …
+    shell\
+        tidy\      (default)="Tidy"   Icon=…   command\ = "…\tidy-exif.exe" …
+        lapis\     (default)="Lapis"  …        command\ = "…\lapis.exe" "%1"
+        show\      (default)="Show"   …        command\ = "…\contextexif.exe" "%1"
+        complete\  …
+```
+
+Each child verb has its own command and icon, so "one exe per item" is the natural
+shape. Repeat under `.jpeg` (and `Directory\shell` for folder-capable tools — the
+set of items may differ per file type).
+
+**Why separate exes (not one launcher):** independent release cycles, sizes, and
+dependencies per tool; a bug in one can't break the others; every tool stays usable
+as a standalone CLI. The alternative — a single `exif.exe` with subcommands — gets
+one installer and no ownership problem, but couples all tools' releases. Since the
+tools already live in separate repos, keep separate exes.
+
+#### Plan
+
+1. **Prototype tidy-exif's right-click invocation first** (riskiest part — see
+   multi-select below). Tidy's CLI is `--dir`-based today; it needs to accept file
+   paths as positional arguments, and the multi-select behavior must be verified on
+   real Windows for the chosen `MultiSelectModel`, including the >15-item case
+   (Explorer hides verbs on large selections unless a model is set).
+2. **Extract a shared `shellmenu` Go package** from contextexif's
+   `internal/shellmenu` (~160 lines excl. tests; `keys.go` is pure string
+   builders, `register_windows.go` the syscalls). Generalize it to register a child
+   verb under the common parent. Every tool imports it, so the parent key name,
+   label, and add/remove rules live in one place.
+3. **Parent-key ownership rules** (in that package): install = create the parent if
+   missing, then add own child (idempotent); uninstall = remove own child, then
+   delete the parent only if no children remain. Without this, uninstalling one tool
+   either wipes the menu for all or leaves an empty "EXIF…" entry.
+4. **Migrate contextexif** from its top-level "Copy image metadata" verb to a child
+   of the cascade (its uninstaller must also clean up the old top-level key).
+5. **Add tidy-exif** as a child: file items for `.jpg`/`.jpeg`, plus a folder item
+   under `Directory\shell` for batch. Pairs with Tier 2 (GUI build) so no console
+   window flashes.
+6. Other tools (Lapis, Complete, …) join by importing the package — no changes to
+   the existing ones.
+
+#### Open questions / constraints
+
+- **Selection contracts differ.** contextexif is deliberately single-file (rejects
+  multi-select with a dialog); Tidy wants many files or a folder. Static verbs'
+  multi-select handling is limited (see constraint 3 above) — the folder verb is
+  the pragmatic batch path.
+- **Windows 11:** the cascade lives under "Show more options", same as any registry
+  verb (contextexif already does). If Tier 3 ever happens, grouping helps: one
+  entry to port to `IExplorerCommand` instead of four.
+- **Installer:** separate per-tool installers each need the shared rules above; a
+  combined "EXIF tools" installer is possible later but not required.
+- Final menu label and item names are still open (`EXIF…` is a placeholder).
 
 ---
 
