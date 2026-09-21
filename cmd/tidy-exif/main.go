@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	version   = "0.1.3"
-	build     = "2"
-	buildDate = "2026-06-19"
+	version   = "0.1.4"
+	build     = "3"
+	buildDate = "2026-09-21"
 )
 
 func main() {

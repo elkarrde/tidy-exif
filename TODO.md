@@ -113,6 +113,8 @@ segment length and avoid rewriting downstream JPEG offsets.
 - [x] `make dist` packages Linux amd64/arm64 (`.tar.gz`) + Windows (`.zip`) archives, each bundling the binary, `LICENSE`, and `README.md` *(2026-06-20)*
 - [x] Tag `v0.1.3` (annotated, local) + `make dist` archives built *(2026-06-20)*
 - [x] Push the tag to Codeberg (`git push origin v0.1.3`) + upload the Linux/Windows archives to the release
+- [x] Move hosting to GitHub: module path `github.com/elkarrde/tidy-exif`, exifscalpel bumped to v0.3.1 *(2026-09-21)*
+- [x] Tag `v0.1.4`, push to GitHub, publish the GitHub release with all three `make dist` archives *(2026-09-21)*
 
 ---
 

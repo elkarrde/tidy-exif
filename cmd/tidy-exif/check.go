@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"codeberg.org/elkarrde/tidy-exif/internal/meta"
+	"github.com/elkarrde/tidy-exif/internal/meta"
 )
 
 func runCheck(args []string) {

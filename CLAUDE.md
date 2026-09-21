@@ -56,8 +56,9 @@ opts into a `.bak` copy; `/dry-run` reports without writing.
 
 `TODO.md` reflects actual code state: phases 1–8 plus the Exif Software work are
 implemented and checked off, the real-JPEG smoke test is done, and `make dist`
-packages the MPL-2.0-compliant release archives. Only the release task remains
-(tag `v0.1.3`, run `make dist`, attach the archives). Keep its checkboxes in sync.
+packages the MPL-2.0-compliant release archives. Releases are published on GitHub
+(`github` remote; bump `version` in `main.go`, tag, `make dist`, `gh release create`
+with the archives). Keep its checkboxes in sync.
 
 ## Housekeeping
 

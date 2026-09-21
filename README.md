@@ -120,7 +120,7 @@ The tool is pure Go (no cgo), so cross-compilation produces a static binary —
 no need to build on the target board.
 
 A `Makefile` with `build` / `build-windows` / `build-arm64` targets is provided. To install:
-`go install codeberg.org/elkarrde/tidy-exif/cmd/tidy-exif@latest`.
+`go install github.com/elkarrde/tidy-exif/cmd/tidy-exif@latest`.
 
 ### Release archives
 
@@ -150,4 +150,4 @@ Mozilla Public License 2.0 (MPL-2.0) — see [`LICENSE`](LICENSE).
 
 -----
 
-Main repo: [Codeberg](https://codeberg.org/elkarrde/tidy-exif)
+Main repo: [GitHub](https://github.com/elkarrde/tidy-exif)

@@ -1,15 +1,15 @@
 # Status
 
-*Last updated: 2026-09-20*
+*Last updated: 2026-09-21*
 
 | Field | Value |
 |:--|:--|
-| Phase | released (v0.1.3); `main` has moved on since |
-| Version | v0.1.3 released; `main` is 5 commits ahead and still reports `0.1.3` |
+| Phase | released (v0.1.4, on GitHub) |
+| Version | v0.1.4 — [GitHub release](https://github.com/elkarrde/tidy-exif/releases/tag/v0.1.4) |
 | Build | passing |
 | Tests | passing |
 | Deployed | released 2026-06-20 — [v0.1.3 on Codeberg](https://codeberg.org/elkarrde/tidy-exif/releases/tag/v0.1.3) with all three archives attached; the site is live at <https://iso3200.org/tidy-exif/> |
-| Blocker | none for v0.1.3. The next release needs a version bump in `cmd/tidy-exif/main.go` — `main` carries the exifscalpel migration, unreleased |
+| Blocker | none |
 
 ## Notes
 
@@ -59,3 +59,12 @@ are all green on that state, but the `version` constant in
 re-vendoring before cutting the next tag.
 
 `TODO.md` remains stale: every box is unchecked although phases 1–8 shipped.
+
+**Moved to GitHub, released `v0.1.4` (2026-09-21).** Codeberg restricts
+LLM-assisted projects, so hosting moved to <https://github.com/elkarrde/tidy-exif>:
+the module path is now `github.com/elkarrde/tidy-exif` (the `exifscalpel`
+dependency stays on Codeberg for now), and `exifscalpel` was bumped v0.1.0 → v0.3.1.
+`v0.1.4` ships the exifscalpel migration above; build, tests, vet, and a real-JPEG
+smoke test (20 files, 6 cleaned, byte-lengths preserved, all decode) are green. The
+three `make dist` archives are attached to the GitHub release, and the site links
+to them.
